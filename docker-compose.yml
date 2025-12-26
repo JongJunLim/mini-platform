@@ -1,6 +1,6 @@
 services:
   seeder:
-    build: ../mini-platform/sql/seeder
+    build: ./seeder
     env_file:
       - .env
     networks:
