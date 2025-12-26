@@ -1,0 +1,19 @@
+services:
+  seeder:
+    build: ../mini-platform/sql/seeder
+    env_file:
+      - .env
+    networks:
+      - data-net
+
+  etl:
+    build: ./etl
+    env_file:
+      - .env
+    networks:
+      - data-net
+
+networks:
+  data-net:
+    external: true
+
