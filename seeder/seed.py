@@ -104,11 +104,6 @@ def seed_mysql(n_users=2000, n_products=300, n_orders=15000):
     countries = ["KR", "DE", "FR", "ES", "UK", "IT"]
     channels = ["web", "app", "dealer", "callcenter"]
     categories = ["SUV", "SEDAN", "EV", "ACCESSORY"]
-
-    with mysql_conn() as conn:
-        with conn.cursor() as cur:
-            # ── users 생성
-
     statuses = ["paid", "shipped", "cancelled"]
 
     conn = mysql_conn()
@@ -120,8 +115,11 @@ def seed_mysql(n_users=2000, n_products=300, n_orders=15000):
                 updated = created + timedelta(days=random.randint(0, 30))
                 cur.execute(
                     "REPLACE INTO users VALUES (%s,%s,%s,%s,%s)",
-                    (uid, created, updated, random.choice(countries), random.choice(channels))
+                    (uid, created, updated,
+                     random.choice(countries),
+                     random.choice(channels))
                 )
+
         # ── products
         with conn.cursor() as cur:
             for pid in range(1, n_products + 1):
@@ -133,23 +131,7 @@ def seed_mysql(n_users=2000, n_products=300, n_orders=15000):
                     (pid, random.choice(categories),
                      price, created, updated)
                 )
-           # ── orders + order_items 생성
-            statuses = ["paid", "shipped", "cancelled"]
-            for oid in range(1, n_orders + 1):
-                uid = random.randint(1, n_users)
-                order_ts = now - timedelta(days=random.randint(0, 60), hours=random.randint(0, 23))
 
-                # 기본 주문 상태
-                status = random.choices(statuses, weights=[0.78, 0.17, 0.05])[0]
-                updated = order_ts + timedelta(hours=random.randint(0, 72))
-                # 일부는 나중에 상태 변경(실무 포인트)
-                # 일부 주문은 "나중에 취소됨" → 실무에서 흔한 케이스
-                if random.random() < 0.03:
-                    status = "cancelled"
-                    updated = now - timedelta(days=random.randint(0, 3))
-                total = 0
-                items = random.randint(1, 4)
-                picks = random.sample(range(1, n_products + 1), items)
         # ── orders + order_items
         with conn.cursor() as cur:
             for oid in range(1, n_orders + 1):
@@ -180,6 +162,7 @@ def seed_mysql(n_users=2000, n_products=300, n_orders=15000):
                         "REPLACE INTO order_items VALUES (%s,%s,%s,%s)",
                         (oid, pid, qty, unit)
                     )
+
                 cur.execute(
                     "REPLACE INTO orders VALUES (%s,%s,%s,%s,%s,%s)",
                     (oid, uid, order_ts, status, total, updated)
