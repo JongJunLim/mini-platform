@@ -91,11 +91,11 @@ def create_schema():
         );
         """
     ]
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            for q in ddl:
+                cur.execute(q)
 
-with mysql_conn() as conn:
-    with conn.cursor() as cur:
-        for q in ddl:
-            cur.execute(q)
 
 # ─────────────────────────────
 # MySQL 데이터 시딩
@@ -107,71 +107,59 @@ def seed_mysql(n_users=2000, n_products=300, n_orders=15000):
     - 일부 주문은 상태 변경(cancelled) → UPSERT 테스트용
     """
     now = datetime.now(KST).replace(tzinfo=None)
+    countries = ["KR", "DE", "FR", "ES", "UK", "IT"]
+    channels = ["web", "app", "dealer", "callcenter"]
+    categories = ["SUV", "SEDAN", "EV", "ACCESSORY"]
 
-    countries = ["KR","DE","FR","ES","UK","IT"]
-    channels = ["web","app","dealer","callcenter"]
-    categories = ["SUV","SEDAN","EV","ACCESSORY"]
-
-with mysql_conn()as conn:
-    with conn.cursor()as cur:
-
-        # ── users 생성
-        for uid in range(1, n_users +1):
-                created = now - timedelta(days=random.randint(1,180))
-                updated = created + timedelta(days=random.randint(0,30))
-
+    with mysql_conn() as conn:
+        with conn.cursor() as cur:
+            # ── users 생성
+            for uid in range(1, n_users + 1):
+                created = now - timedelta(days=random.randint(1, 180))
+                updated = created + timedelta(days=random.randint(0, 30))
                 cur.execute(
                     "REPLACE INTO users VALUES (%s,%s,%s,%s,%s)",
-                    (uid, created, updated,
-                     random.choice(countries),
-                     random.choice(channels))
+                    (uid, created, updated, random.choice(countries), random.choice(channels))
                 )
 
-        # ── products 생성
-        for pid in range(1, n_products +1):
-                created = now - timedelta(days=random.randint(30,365))
-                updated = created + timedelta(days=random.randint(0,60))
-                price = random.randint(10,300) *1000
-
+            # ── products 생성
+            for pid in range(1, n_products + 1):
+                created = now - timedelta(days=random.randint(30, 365))
+                updated = created + timedelta(days=random.randint(0, 60))
+                price = random.randint(10, 300) * 1000
                 cur.execute(
                     "REPLACE INTO products VALUES (%s,%s,%s,%s,%s)",
                     (pid, random.choice(categories), price, created, updated)
                 )
 
-        # ── orders + order_items 생성
-        statuses = ["paid","shipped","cancelled"]
-
-        for oid in range(1, n_orders +1):
-                user_id = random.randint(1, n_users)
-                order_ts = now - timedelta(days=random.randint(0,60),
-                                           hours=random.randint(0,23))
+           # ── orders + order_items 생성
+            statuses = ["paid", "shipped", "cancelled"]
+            for oid in range(1, n_orders + 1):
+                uid = random.randint(1, n_users)
+                order_ts = now - timedelta(days=random.randint(0, 60), hours=random.randint(0, 23))
 
                 # 기본 주문 상태
-                status = random.choices(statuses, weights=[0.78,0.17,0.05])[0]
-                updated = order_ts + timedelta(hours=random.randint(0,72))
-
+                status = random.choices(statuses, weights=[0.78, 0.17, 0.05])[0]
+                updated = order_ts + timedelta(hours=random.randint(0, 72))
+                # 일부는 나중에 상태 변경(실무 포인트)
                 # 일부 주문은 "나중에 취소됨" → 실무에서 흔한 케이스
-                if random.random() <0.03:
-                    status ="cancelled"
-                    updated = now - timedelta(days=random.randint(0,3))
-
-                total =0
-                items = random.randint(1,4)
-                product_ids = random.sample(range(1, n_products +1), items)
-
-                for pid in product_ids:
-                    qty = random.randint(1,3)
-                    unit_price = random.randint(10,300) *1000
-                    total += qty * unit_price
-
+                if random.random() < 0.03:
+                    status = "cancelled"
+                    updated = now - timedelta(days=random.randint(0, 3))
+                total = 0
+                items = random.randint(1, 4)
+                picks = random.sample(range(1, n_products + 1), items)
+                for pid in picks:
+                    qty = random.randint(1, 3)
+                    unit = random.randint(10, 300) * 1000
+                    total += qty * unit
                     cur.execute(
-                                "REPLACE INTO order_items VALUES (%s,%s,%s,%s)",
-                                (oid, pid, qty, unit_price)
+                        "REPLACE INTO order_items VALUES (%s,%s,%s,%s)",
+                        (oid, pid, qty, unit)
                     )
-
                 cur.execute(
                     "REPLACE INTO orders VALUES (%s,%s,%s,%s,%s,%s)",
-                    (oid, user_id, order_ts, status, total, updated)
+                    (oid, uid, order_ts, status, total, updated)
                 )
 
 # ─────────────────────────────
