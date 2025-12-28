@@ -17,22 +17,20 @@ def env(name, default=None):
         raise RuntimeError(f"Missing env: {name}")
     return v
 
-# ── MySQL
-MYSQL_HOST = env("MYSQL_HOST")
-MYSQL_PORT =int(env("MYSQL_PORT","3306"))
-MYSQL_DB = env("MYSQL_DB")
-MYSQL_USER = env("MYSQL_USER")
-MYSQL_PASSWORD = env("MYSQL_PASSWORD")
+MYSQL_HOST = os.getenv("MYSQL_HOST","mysql")
+MYSQL_PORT =int(os.getenv("MYSQL_PORT","3306"))
+MYSQL_DB = os.getenv("MYSQL_DB","app")
+MYSQL_USER = os.getenv("MYSQL_USER","app")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD","apppw")
 
-# ── Mongo
-MONGO_URI = env("MONGO_URI")
+MONGO_URI = os.getenv("MONGO_URI","mongodb://mongo:27017")
 
 # ── Postgres(DW)
-PG_HOST = env("PG_HOST")
-PG_PORT =int(env("PG_PORT","5432"))
-PG_DB = env("PG_DB")
-PG_USER = env("PG_USER")
-PG_PASSWORD = env("PG_PASSWORD")
+PG_HOST = os.getenv("PG_HOST")
+PG_PORT =int(os.getenv("PG_PORT","5432"))
+PG_DB = os.getenv("PG_DB")
+PG_USER = os.getenv("PG_USER")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 
 # ─────────────────────────────
 # DB 커넥션 생성
@@ -192,7 +190,7 @@ def upsert_events(pg, rows):
           error_code=EXCLUDED.error_code
         """, rows)
     pg.commit()
-returnlen(rows)
+    return len(rows)
 
 # ─────────────────────────────
 # MART 생성
